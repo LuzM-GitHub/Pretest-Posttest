@@ -1,0 +1,48 @@
+###################################################################################
+##  function to find confidence intervals using BCa method. 
+##  Efron & Tibshirani (1993). An introduction to the Bootstrap. Chapmal & Hill.###
+###################################################################################
+
+abcConfInterv <- function(baseC,baseT,alpha,var.error,theta,N){
+
+  #### Jacknife values to find the quantity "a", the acceleration.
+	j.sample=NULL
+	for(i4 in 1:nrow(baseC))
+	{
+		for(i5 in 1:nrow(baseT))
+		{	
+		j.estimator=pp.interv(baseC=trat.C[-i4,],baseT=trat.T[-i5,],var.error=varerror,N=N)
+		j.sample=rbind(j.sample,j.estimator)
+		}	
+	}
+  j.mean=apply(j.sample,2,mean)
+  L=apply(j.sample,2,function(y) {mean(y)-y})
+  ac=apply(L,2,function(y) {sum(y^3)/(6*(sum(y^2))^1.5)}) ## acceleration
+  n.estim=ncol(j.sample)
+
+  #### Bootstrap samples to find z0, the bias correction.
+  b.sample <- NULL
+  B = 2000  # number of bootstrap samples.
+  for(i3 in 1:B)
+  {
+	sam.C=trat.C[sample(1:nrow(trat.C), replace = TRUE),]
+	sam.T=trat.T[sample(1:nrow(trat.T), replace = TRUE),]
+	estimator=pp.interv(baseC=sam.C,baseT=sam.T,var.error=varerror,N=N)
+	b.sample=rbind(b.sample,estimator)
+	rm(estimator,sam.C,sam.T)
+  }
+  z0=c(qnorm(sum(b.sample[,1] < theta[1])/nrow(b.sample)),qnorm(sum(b.sample[,2] < theta[2])/nrow(b.sample)))
+
+  #### Confidence intervals using BCa method
+  IC=NULL
+  for(y in 1:n.estim) 
+	{
+	adj.alpha1 <- pnorm(z0[y] + (z0[y]+qnorm(alpha))/(1-ac[y]*(z0[y]+qnorm(alpha))))
+	adj.alpha2 <- pnorm(z0[y] + (z0[y]+qnorm(1-alpha))/(1-ac[y]*(z0[y]+qnorm(1-alpha))))
+	BCa.LI=quantile(b.sample[,y],adj.alpha1,type=6)
+	BCa.LU=quantile(b.sample[,y],adj.alpha2,type=6)
+        length = BCa.LU-BCa.LI
+        IC=cbind(IC,cbind(BCa.LI,BCa.LU,length))
+	}
+  return(IC)
+}

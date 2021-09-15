@@ -1,0 +1,25 @@
+library(matrixcalc)
+remove(list=ls())  	#cleaning databases 
+
+source("functionPPinterv.txt")      #call the function: pp.interv()
+source("functionIC_ABc.txt")        #call the function: abcConfInterv()
+
+ratos = scan('ratos.txt',list(rato=0,interv=0,pre=0,pos=0)) 
+ratos=data.frame(ratos)
+
+trat.C = data.matrix(subset(ratos,interv == 1))		#intervention C
+trat.T = data.matrix(subset(ratos,interv == 2))		#intervention T
+
+trat.C = trat.C[,c(3,4)]
+trat.T = trat.T[,c(3,4)]
+
+N=100            # population size
+mean.EMU=0      # mean.EMU
+varerror=mean.EMU*((var(ratos$pre)+var(ratos$pos)-2*cov(ratos$pre,ratos$pos))/nrow(ratos))
+
+theta=pp.interv(baseC=trat.C,baseT=trat.T,var.error=varerror,N=N)  # Proposed estimator and ancova estimator, respectively.
+theta
+
+interv=abcConfInterv(baseC=trat.C,baseT=trat.T,alpha=0.05,var.error=varerror,theta=theta,N=N) # non-parametric confidence intervals based on BCa.
+interv
+
